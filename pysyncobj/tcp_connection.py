@@ -27,7 +27,7 @@ def _getAddrType(addr):
         pass
     raise Exception('unknown address type')
 
-class TcpConnection(object):
+class TCPConnection(object):
 
     def __init__(self, poller, onMessageReceived = None, onConnected = None, onDisconnected = None,
                  socket=None, timeout=10.0, sendBufferSize = 2 ** 13, recvBufferSize = 2 ** 13):

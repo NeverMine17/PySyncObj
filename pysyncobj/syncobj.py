@@ -36,8 +36,10 @@ except ImportError:
     PIPE_NOTIFIER_ENABLED = False
 
 from .serializer import Serializer, SERIALIZER_STATE
-from .node import Node, TCPNode
-from .transport import Transport, TCPTransport, TransportNotReadyError
+from .node import Node
+from pysyncobj.tcp_node import TCPNode
+from .transport import Transport, TransportNotReadyError
+from pysyncobj.tcp_transport import TCPTransport
 from .journal import createJournal
 from .config import SyncObjConf, FAIL_REASON
 from .encryptor import HAS_CRYPTO, getEncryptor

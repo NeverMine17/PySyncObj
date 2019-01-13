@@ -1,13 +1,13 @@
 import socket
 
 from .poller import POLL_EVENT_TYPE
-from .tcp_connection import TcpConnection, _getAddrType
+from .tcp_connection import TCPConnection, _getAddrType
 
 class SERVER_STATE:
     UNBINDED = 0,
     BINDED = 1
 
-class TcpServer(object):
+class TCPServer(object):
 
     def __init__(self, poller, host, port, onNewConnection,
                  sendBufferSize = 2 ** 13,
@@ -56,7 +56,7 @@ class TcpServer(object):
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.__recvBufferSize)
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 sock.setblocking(0)
-                conn = TcpConnection(poller=self.__poller,
+                conn = TCPConnection(poller=self.__poller,
                                      socket=sock,
                                      timeout=self.__connectionTimeout,
                                      sendBufferSize=self.__sendBufferSize,

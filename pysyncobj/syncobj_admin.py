@@ -4,7 +4,7 @@ import sys, os
 from argparse import ArgumentParser
 from .encryptor import getEncryptor
 from .poller import createPoller
-from .tcp_connection import TcpConnection
+from .tcp_connection import TCPConnection
 
 
 class Utility(object):
@@ -15,7 +15,7 @@ class Utility(object):
 
         if self.__getData(args):
             self.__poller = createPoller('auto')
-            self.__connection = TcpConnection(self.__poller,
+            self.__connection = TCPConnection(self.__poller,
                                               onDisconnected=self.__onDisconnected,
                                               onMessageReceived=self.__onMessageReceived,
                                               onConnected=self.__onConnected,

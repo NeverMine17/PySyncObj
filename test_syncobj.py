@@ -15,7 +15,7 @@ import logging
 from pysyncobj import SyncObj, SyncObjConf, replicated, FAIL_REASON, _COMMAND_TYPE, \
 	createJournal, HAS_CRYPTO, replicated_sync, Utility, SyncObjException, SyncObjConsumer, _RAFT_STATE
 from pysyncobj.batteries import ReplCounter, ReplList, ReplDict, ReplSet, ReplLockManager, ReplQueue, ReplPriorityQueue
-from pysyncobj.node import TCPNode
+from pysyncobj.tcp_node import TCPNode
 from collections import defaultdict
 
 logging.basicConfig(format = u'[%(asctime)s %(filename)s:%(lineno)d %(levelname)s]  %(message)s', level = logging.DEBUG)
