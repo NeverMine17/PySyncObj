@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-import sys, os
+import os
+import sys
 from argparse import ArgumentParser
+
 from .encryptor import getEncryptor
 from .poller import createPoller
 from .tcp_connection import TCPConnection

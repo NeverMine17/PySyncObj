@@ -1,11 +1,9 @@
-import time
 import socket
-import zlib
 import struct
+import time
+import zlib
 
 import pysyncobj.pickle as pickle
-import pysyncobj.win_inet_pton
-
 from .poller import POLL_EVENT_TYPE
 
 

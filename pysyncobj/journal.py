@@ -1,9 +1,10 @@
-import os
 import mmap
+import os
 import struct
 
-from .version import VERSION
 from .pickle import to_bytes
+from .version import VERSION
+
 
 class Journal(object):
 

@@ -1,15 +1,15 @@
-import time
-import random
-import os
-import sys
-import threading
-import weakref
 import collections
 import functools
-import struct
 import logging
-import copy
+import os
+import random
+import struct
+import sys
+import threading
+import time
 import types
+import weakref
+
 try:
     import Queue
     is_py3 = False
@@ -44,7 +44,6 @@ from .journal import createJournal
 from .config import SyncObjConf, FAIL_REASON
 from .encryptor import HAS_CRYPTO, getEncryptor
 from .version import VERSION
-from .revision import REVISION
 from .fast_queue import FastQueue
 
 class _RAFT_STATE:
@@ -634,7 +633,6 @@ class SyncObj(object):
 
         status = {}
         status['version'] = VERSION
-        status['revision'] = REVISION
         status['self'] = self.__selfNode
         status['state'] = self.__raftState
         status['leader'] = self.__raftLeader

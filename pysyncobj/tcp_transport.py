@@ -6,8 +6,8 @@ import time
 from pysyncobj import FAIL_REASON
 from pysyncobj.dns_resolver import globalDnsResolver
 from pysyncobj.node import Node
-from pysyncobj.tcp_node import TCPNode
 from pysyncobj.tcp_connection import CONNECTION_STATE, TCPConnection
+from pysyncobj.tcp_node import TCPNode
 from pysyncobj.tcp_server import TCPServer
 from pysyncobj.transport import Transport, TransportNotReadyError
 

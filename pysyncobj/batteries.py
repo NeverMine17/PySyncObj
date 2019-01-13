@@ -1,10 +1,11 @@
-import threading
-import weakref
-import time
-import socket
-import os
 import collections
 import heapq
+import os
+import socket
+import threading
+import time
+import weakref
+
 from .syncobj import SyncObjConsumer, replicated
 
 

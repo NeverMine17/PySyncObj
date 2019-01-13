@@ -1,6 +1,6 @@
+import ctypes
 import os
 import sys
-import ctypes
 
 if hasattr(ctypes, 'windll'):     # pragma: no cover
     CreateTransaction = ctypes.windll.ktmw32.CreateTransaction

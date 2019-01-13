@@ -1,9 +1,9 @@
-import os
 import gzip
 import logging
-import pysyncobj.pickle as pickle
-
+import os
 from io import BytesIO
+
+import pysyncobj.pickle as pickle
 from .atomic_replace import atomicReplace
 from .config import SERIALIZER_STATE
 
