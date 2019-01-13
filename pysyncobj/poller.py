@@ -1,14 +1,14 @@
 import select
 
 
-class POLL_EVENT_TYPE:
+class PollEventType:
     READ = 1
     WRITE = 2
     ERROR = 4
 
 
 class Poller(object):
-    def subscribe(self, descr, callback, eventMask):
+    def subscribe(self, descr, callback, event_mask):
         raise NotImplementedError
 
     def unsubscribe(self, descr):
@@ -25,13 +25,13 @@ class SelectPoller(Poller):
         self.__descrsError = set()
         self.__descrToCallbacks = {}
 
-    def subscribe(self, descr, callback, eventMask):
+    def subscribe(self, descr, callback, event_mask):
         self.unsubscribe(descr)
-        if eventMask & POLL_EVENT_TYPE.READ:
+        if event_mask & PollEventType.READ:
             self.__descrsRead.add(descr)
-        if eventMask & POLL_EVENT_TYPE.WRITE:
+        if event_mask & PollEventType.WRITE:
             self.__descrsWrite.add(descr)
-        if eventMask & POLL_EVENT_TYPE.ERROR:
+        if event_mask & PollEventType.ERROR:
             self.__descrsError.add(descr)
         self.__descrToCallbacks[descr] = callback
 
@@ -54,11 +54,11 @@ class SelectPoller(Poller):
         for descr in allDescrs:
             event = 0
             if descr in rlist:
-                event |= POLL_EVENT_TYPE.READ
+                event |= PollEventType.READ
             if descr in wlist:
-                event |= POLL_EVENT_TYPE.WRITE
+                event |= PollEventType.WRITE
             if descr in xlist:
-                event |= POLL_EVENT_TYPE.ERROR
+                event |= PollEventType.ERROR
             self.__descrToCallbacks[descr](descr, event)
 
 
@@ -67,13 +67,13 @@ class PollPoller(Poller):
         self.__poll = select.poll()
         self.__descrToCallbacks = {}
 
-    def subscribe(self, descr, callback, eventMask):
+    def subscribe(self, descr, callback, event_mask):
         pollEventMask = 0
-        if eventMask & POLL_EVENT_TYPE.READ:
+        if event_mask & PollEventType.READ:
             pollEventMask |= select.POLLIN
-        if eventMask & POLL_EVENT_TYPE.WRITE:
+        if event_mask & PollEventType.WRITE:
             pollEventMask |= select.POLLOUT
-        if eventMask & POLL_EVENT_TYPE.ERROR:
+        if event_mask & PollEventType.ERROR:
             pollEventMask |= select.POLLERR
         self.__descrToCallbacks[descr] = callback
         self.__poll.register(descr, pollEventMask)
@@ -89,22 +89,22 @@ class PollPoller(Poller):
         for descr, event in events:
             eventMask = 0
             if event & select.POLLIN:
-                eventMask |= POLL_EVENT_TYPE.READ
+                eventMask |= PollEventType.READ
             if event & select.POLLOUT:
-                eventMask |= POLL_EVENT_TYPE.WRITE
+                eventMask |= PollEventType.WRITE
             if event & select.POLLERR or event & select.POLLHUP:
-                eventMask |= POLL_EVENT_TYPE.ERROR
+                eventMask |= PollEventType.ERROR
             self.__descrToCallbacks[descr](descr, eventMask)
 
 
-def createPoller(pollerType):
-    if pollerType == 'auto':
+def create_poller(poller_type):
+    if poller_type == 'auto':
         if hasattr(select, 'poll'):
             return PollPoller()
         return SelectPoller()
-    elif pollerType == 'poll':
+    elif poller_type == 'poll':
         return PollPoller()
-    elif pollerType == 'select':
+    elif poller_type == 'select':
         return SelectPoller()
     else:
         raise Exception('unknown poller type')

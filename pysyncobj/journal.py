@@ -14,10 +14,10 @@ class Journal(object):
     def clear(self):
         raise NotImplementedError
 
-    def deleteEntriesFrom(self, entryFrom):
+    def delete_entries_from(self, entry_from):
         raise NotImplementedError
 
-    def deleteEntriesTo(self, entryTo):
+    def delete_entries_to(self, entry_to):
         raise NotImplementedError
 
     def __getitem__(self, item):
@@ -42,11 +42,11 @@ class MemoryJournal(Journal):
     def clear(self):
         self.__journal = []
 
-    def deleteEntriesFrom(self, entryFrom):
-        del self.__journal[entryFrom:]
+    def delete_entries_from(self, entry_from):
+        del self.__journal[entry_from:]
 
-    def deleteEntriesTo(self, entryTo):
-        self.__journal = self.__journal[entryTo:]
+    def delete_entries_to(self, entry_to):
+        self.__journal = self.__journal[entry_to:]
 
     def __getitem__(self, item):
         return self.__journal[item]
@@ -59,41 +59,41 @@ class MemoryJournal(Journal):
 
 
 class ResizableFile(object):
-
-    def __init__(self, fileName, initialSize = 1024, resizeFactor = 2.0, defaultContent = None):
-        self.__fileName = fileName
-        self.__resizeFactor = resizeFactor
-        if not os.path.exists(fileName):
-            with open(fileName, 'wb') as f:
-                if defaultContent is not None:
-                    f.write(defaultContent)
-        self.__f = open(fileName, 'r+b')
+    def __init__(self, file_name, initial_size=1024, resize_factor=2.0, default_content=None):
+        self.__fileName = file_name
+        self.__resizeFactor = resize_factor
+        if not os.path.exists(file_name):
+            with open(file_name, 'wb') as f:
+                if default_content is not None:
+                    f.write(default_content)
+        self.__f = open(file_name, 'r+b')
         self.__mm = mmap.mmap(self.__f.fileno(), 0)
-        currSize = self.__mm.size()
-        if currSize < initialSize:
+        curr_size = self.__mm.size()
+        if curr_size < initial_size:
             try:
-                self.__mm.resize(initialSize)
+                self.__mm.resize(initial_size)
             except SystemError:
-                self.__extand(initialSize - currSize)
+                self.__extand(initial_size - curr_size)
 
     def write(self, offset, values):
         size = len(values)
-        currSize = self.__mm.size()
+        curr_size = self.__mm.size()
         if offset + size > self.__mm.size():
             try:
                 self.__mm.resize(int(self.__mm.size() * self.__resizeFactor))
             except SystemError:
-                self.__extand(int(self.__mm.size() * self.__resizeFactor) - currSize)
+                self.__extand(
+                    int(self.__mm.size() * self.__resizeFactor) - curr_size)
         self.__mm[offset:offset + size] = values
 
     def read(self, offset, size):
         return self.__mm[offset:offset + size]
 
-    def __extand(self, bytesToAdd):
+    def __extand(self, bytes_to_add):
         self.__mm.close()
         self.__f.close()
         with open(self.__fileName, 'ab') as f:
-            f.write(b'\0' * bytesToAdd)
+            f.write(b'\0' * bytes_to_add)
         self.__f = open(self.__fileName, 'r+b')
         self.__mm = mmap.mmap(self.__f.fileno(), 0)
 
@@ -104,7 +104,6 @@ class ResizableFile(object):
 
     def flush(self):
         self.__mm.flush()
-
 
 
 JOURNAL_FORMAT_VERSION = 1
@@ -118,6 +117,7 @@ assert len(APP_VERSION) < VERSION_SIZE
 FIRST_RECORD_OFFSET = NAME_SIZE + VERSION_SIZE + 4 + 4
 LAST_RECORD_OFFSET_OFFSET = NAME_SIZE + VERSION_SIZE + 4
 
+
 #
 #  APP_NAME (24b) + APP_VERSION (8b) + FORMAT_VERSION (4b) + LAST_RECORD_OFFSET (4b) +
 #      record1size + record1 + record1size   +  record2size + record2 + record2size   +  ...
@@ -127,30 +127,36 @@ LAST_RECORD_OFFSET_OFFSET = NAME_SIZE + VERSION_SIZE + 4
 class FileJournal(Journal):
 
     def __init__(self, journalFile):
-        self.__journalFile = ResizableFile(journalFile, defaultContent=self.__getDefaultHeader())
+        self.__journalFile = ResizableFile(
+            journalFile, default_content=self.__getDefaultHeader())
         self.__journal = []
         currentOffset = FIRST_RECORD_OFFSET
         lastRecordOffset = self.__getLastRecordOffset()
         while currentOffset < lastRecordOffset:
-            nextRecordSize = struct.unpack('<I', self.__journalFile.read(currentOffset, 4))[0]
-            nextRecordData = self.__journalFile.read(currentOffset + 4, nextRecordSize)
+            nextRecordSize = struct.unpack(
+                '<I', self.__journalFile.read(currentOffset, 4))[0]
+            nextRecordData = self.__journalFile.read(
+                currentOffset + 4, nextRecordSize)
             command = nextRecordData[16:]
             idx, term = struct.unpack('<QQ', nextRecordData[:16])
             self.__journal.append((command, idx, term))
             currentOffset += nextRecordSize + 8
         self.__currentOffset = currentOffset
 
-    def __getDefaultHeader(self):
+    @staticmethod
+    def __getDefaultHeader():
         appName = APP_NAME + b'\0' * (NAME_SIZE - len(APP_NAME))
         appVersion = APP_VERSION + b'\0' * (VERSION_SIZE - len(APP_VERSION))
-        header = appName + appVersion + struct.pack('<II', JOURNAL_FORMAT_VERSION, FIRST_RECORD_OFFSET)
+        header = appName + appVersion + \
+            struct.pack('<II', JOURNAL_FORMAT_VERSION, FIRST_RECORD_OFFSET)
         return header
 
     def __getLastRecordOffset(self):
         return struct.unpack('<I', self.__journalFile.read(LAST_RECORD_OFFSET_OFFSET, 4))[0]
 
     def __setLastRecordOffset(self, offset):
-        self.__journalFile.write(LAST_RECORD_OFFSET_OFFSET, struct.pack('<I', offset))
+        self.__journalFile.write(
+            LAST_RECORD_OFFSET_OFFSET, struct.pack('<I', offset))
 
     def add(self, command, idx, term):
         self.__journal.append((command, idx, term))
@@ -172,13 +178,14 @@ class FileJournal(Journal):
     def __len__(self):
         return len(self.__journal)
 
-    def deleteEntriesFrom(self, entryFrom):
-        entriesToRemove = len(self.__journal) - entryFrom
-        del self.__journal[entryFrom:]
+    def delete_entries_from(self, entry_from):
+        entriesToRemove = len(self.__journal) - entry_from
+        del self.__journal[entry_from:]
         currentOffset = self.__currentOffset
         removedEntries = 0
         while removedEntries < entriesToRemove:
-            prevRecordSize = struct.unpack('<I', self.__journalFile.read(currentOffset - 4, 4))[0]
+            prevRecordSize = struct.unpack(
+                '<I', self.__journalFile.read(currentOffset - 4, 4))[0]
             currentOffset -= prevRecordSize + 8
             removedEntries += 1
             if removedEntries % 10 == 0:
@@ -186,8 +193,8 @@ class FileJournal(Journal):
         self.__currentOffset = currentOffset
         self.__setLastRecordOffset(currentOffset)
 
-    def deleteEntriesTo(self, entryTo):
-        journal = self.__journal[entryTo:]
+    def delete_entries_to(self, entry_to):
+        journal = self.__journal[entry_to:]
         self.clear()
         for entry in journal:
             self.add(*entry)
@@ -198,7 +205,8 @@ class FileJournal(Journal):
     def flush(self):
         self.__journalFile.flush()
 
-def createJournal(journalFile = None):
+
+def createJournal(journalFile=None):
     if journalFile is None:
         return MemoryJournal()
     return FileJournal(journalFile)

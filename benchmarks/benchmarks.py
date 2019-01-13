@@ -4,11 +4,13 @@ import pickle
 from functools import wraps
 from subprocess import Popen, PIPE
 import os
+
 DEVNULL = open(os.devnull, 'wb')
 
 START_PORT = 4321
 MIN_RPS = 10
 MAX_RPS = 40000
+
 
 def memoize(fileName):
     def doMemoize(func):
@@ -17,6 +19,7 @@ def memoize(fileName):
                 cache = pickle.load(f)
         else:
             cache = {}
+
         @wraps(func)
         def wrap(*args):
             if args not in cache:
@@ -24,13 +27,16 @@ def memoize(fileName):
                 with open(fileName, 'wb') as f:
                     pickle.dump(cache, f)
             return cache[args]
+
         return wrap
+
     return doMemoize
 
-def singleBenchmark(requestsPerSecond, requestSize, numNodes, numNodesReadonly = 0, delay = False):
+
+def singleBenchmark(requestsPerSecond, requestSize, numNodes, numNodesReadonly=0, delay=False):
     rpsPerNode = requestsPerSecond / (numNodes + numNodesReadonly)
     cmd = [sys.executable, 'testobj_delay.py' if delay else 'testobj.py', str(rpsPerNode), str(requestSize)]
-    #cmd = 'python2.7 -m cProfile -s time testobj.py %d %d' % (rpsPerNode, requestSize)
+    # cmd = 'python2.7 -m cProfile -s time testobj.py %d %d' % (rpsPerNode, requestSize)
     processes = []
     allAddrs = []
     for i in range(numNodes):
@@ -53,6 +59,7 @@ def singleBenchmark(requestsPerSecond, requestSize, numNodes, numNodesReadonly =
         return avgRate
     return avgRate >= 0.9
 
+
 def doDetectMaxRps(requestSize, numNodes):
     a = MIN_RPS
     b = MAX_RPS
@@ -68,6 +75,7 @@ def doDetectMaxRps(requestSize, numNodes):
         numIt += 1
     return a
 
+
 @memoize('maxRpsCache.bin')
 def detectMaxRps(requestSize, numNodes):
     results = []
@@ -77,9 +85,11 @@ def detectMaxRps(requestSize, numNodes):
         results.append(res)
     return sorted(results)[len(results) / 2]
 
+
 def printUsage():
     print('Usage: %s mode(delay/rps/custom)' % sys.argv[0])
     sys.exit(-1)
+
 
 if __name__ == '__main__':
 

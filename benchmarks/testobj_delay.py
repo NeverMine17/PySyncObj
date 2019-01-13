@@ -1,10 +1,12 @@
+from pysyncobj import SyncObj, replicated, SyncObjConf, FailReason
 from __future__ import print_function
 import sys
 import time
 import random
 from collections import defaultdict
+
 sys.path.append("../")
-from pysyncobj import SyncObj, replicated, SyncObjConf, FAIL_REASON
+
 
 class TestObj(SyncObj):
 
@@ -23,15 +25,17 @@ class TestObj(SyncObj):
     def getNumCommandsApplied(self):
         return self.__appliedCommands
 
+
 _g_sent = 0
 _g_success = 0
 _g_error = 0
 _g_errors = defaultdict(int)
 _g_delays = []
 
+
 def clbck(res, err):
     global _g_error, _g_success, _g_delays
-    if err == FAIL_REASON.SUCCESS:
+    if err == FailReason.SUCCESS:
         _g_success += 1
         callTime, recvTime = res
         delay = time.time() - callTime
@@ -40,9 +44,11 @@ def clbck(res, err):
         _g_error += 1
         _g_errors[err] += 1
 
+
 def getRandStr(l):
     f = '%0' + str(l) + 'x'
     return f % random.randrange(16 ** l)
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 5:

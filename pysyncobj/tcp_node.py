@@ -1,4 +1,4 @@
-from pysyncobj.dns_resolver import globalDnsResolver
+from pysyncobj.dns_resolver import global_dns_resolver
 from pysyncobj.node import Node
 
 
@@ -20,10 +20,13 @@ class TCPNode(Node):
         self.address = address
         self.host, port = address.rsplit(':', 1)
         self.port = int(port)
-        self.ip = globalDnsResolver().resolve(self.host)
+        self.ip = global_dns_resolver().resolve(self.host)
 
     def __repr__(self):
         v = vars(self)
         filtered = ['_id', 'address', 'host', 'port', 'ip']
-        formatted = ['{} = {}'.format(key, repr(v[key])) for key in v if key not in filtered]
-        return '{}({}{})'.format(type(self).__name__, repr(self.id), (', ' + ', '.join(formatted)) if len(formatted) else '')
+        formatted = ['{} = {}'.format(key, repr(v[key]))
+                     for key in v if key not in filtered]
+        return '{}({}{})'.format(
+            type(self).__name__, repr(self.id),
+            (', ' + ', '.join(formatted)) if len(formatted) else '')

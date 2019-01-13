@@ -1,24 +1,30 @@
+class FailReason:
+    SUCCESS = 0  #: Command successfully applied.
+    QUEUE_FULL = 1  #: Commands queue full
+    #: Leader is currently missing (leader election in progress, or no connection)
+    MISSING_LEADER = 2
+    #: Command discarded (cause of new leader elected and another command was applied instead)
+    DISCARDED = 3
+    #: Leader has changed, old leader did not have time to commit command.
+    NOT_LEADER = 4
+    #: Simmilar to NOT_LEADER - leader has changed without command commit.
+    LEADER_CHANGED = 5
+    REQUEST_DENIED = 6  #: Command denied
 
-class FAIL_REASON:
-    SUCCESS = 0             #: Command successfully applied.
-    QUEUE_FULL = 1          #: Commands queue full
-    MISSING_LEADER = 2      #: Leader is currently missing (leader election in progress, or no connection)
-    DISCARDED = 3           #: Command discarded (cause of new leader elected and another command was applied instead)
-    NOT_LEADER = 4          #: Leader has changed, old leader did not have time to commit command.
-    LEADER_CHANGED = 5      #: Simmilar to NOT_LEADER - leader has changed without command commit.
-    REQUEST_DENIED = 6      #: Command denied
 
-class SERIALIZER_STATE:
-    NOT_SERIALIZING = 0     #: Serialization not started or already finished.
-    SERIALIZING = 1         #: Serialization in progress.
-    SUCCESS = 2             #: Serialization successfully finished (should be returned only one time after finished).
-    FAILED = 3              #: Serialization failed (should be returned only one time after finished).
+class SerializerState:
+    NOT_SERIALIZING = 0  #: Serialization not started or already finished.
+    SERIALIZING = 1  #: Serialization in progress.
+    #: Serialization successfully finished (should be returned only one time after finished).
+    SUCCESS = 2
+    #: Serialization failed (should be returned only one time after finished).
+    FAILED = 3
+
 
 class SyncObjConf(object):
     """PySyncObj configuration object"""
 
     def __init__(self, **kwargs):
-
         # Encrypt session with specified password.
         # Install `cryptography` module to be able to set password.
         self.password = kwargs.get('password', None)
@@ -61,7 +67,8 @@ class SyncObjConf(object):
         self.appendEntriesUseBatch = kwargs.get('appendEntriesUseBatch', True)
 
         #: Max number of bytes per single append_entries command.
-        self.appendEntriesBatchSizeBytes = kwargs.get('appendEntriesBatchSizeBytes', 2 ** 16)
+        self.appendEntriesBatchSizeBytes = kwargs.get(
+            'appendEntriesBatchSizeBytes', 2 ** 16)
 
         #: Bind address (address:port). Default - None.
         #: If None - selfAddress is used as bindAddress.
@@ -90,7 +97,8 @@ class SyncObjConf(object):
 
         #: Log will be compacted after it reach minEntries size or
         #: minTime after previous compaction.
-        self.logCompactionMinEntries = kwargs.get('logCompactionMinEntries', 5000)
+        self.logCompactionMinEntries = kwargs.get(
+            'logCompactionMinEntries', 5000)
 
         #: Log will be compacted after it reach minEntries size or
         #: minTime after previous compaction.
@@ -103,7 +111,8 @@ class SyncObjConf(object):
 
         #: Max number of bytes per single append_entries command
         #: while sending serialized object.
-        self.logCompactionBatchSize = kwargs.get('logCompactionBatchSize', 2 ** 16)
+        self.logCompactionBatchSize = kwargs.get(
+            'logCompactionBatchSize', 2 ** 16)
 
         #: If true - commands will be enqueued and executed after leader detected.
         #: Otherwise - `FAIL_REASON.MISSING_LEADER <#pysyncobj.FAIL_REASON.MISSING_LEADER>`_ error will be emitted.
@@ -132,7 +141,8 @@ class SyncObjConf(object):
         self.onStateChanged = kwargs.get('onStateChanged', None)
 
         #: If enabled - cluster configuration could be changed dynamically.
-        self.dynamicMembershipChange = kwargs.get('dynamicMembershipChange', False)
+        self.dynamicMembershipChange = kwargs.get(
+            'dynamicMembershipChange', False)
 
         #: Sockets poller:
         #:  * `auto` - auto select best available on current platform
@@ -174,7 +184,7 @@ class SyncObjConf(object):
         assert self.appendEntriesBatchSizeBytes > 0
         assert self.sendBufferSize > 0
         assert self.recvBufferSize > 0
-        assert self.dnsCacheTime>= 0
+        assert self.dnsCacheTime >= 0
         assert self.dnsFailCacheTime >= 0
         assert self.logCompactionMinEntries >= 2
         assert self.logCompactionMinTime > 0

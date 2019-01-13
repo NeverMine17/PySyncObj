@@ -4,16 +4,17 @@ import os
 from io import BytesIO
 
 import pysyncobj.pickle as pickle
-from .atomic_replace import atomicReplace
-from .config import SERIALIZER_STATE
+from .atomic_replace import atomic_replace
+from .config import SerializerState
 
 
 class Serializer(object):
-    def __init__(self, fileName, transmissionBatchSize, tryUseFork,
-                 serializer, deserializer, serializeChecker):
-        self.__useFork = tryUseFork and hasattr(os, 'fork') and serializer is None
-        self.__fileName = fileName
-        self.__transmissionBatchSize = transmissionBatchSize
+    def __init__(self, file_name, transmission_batch_size, try_use_fork,
+                 serializer, deserializer, serialize_checker):
+        self.__useFork = try_use_fork and hasattr(
+            os, 'fork') and serializer is None
+        self.__fileName = file_name
+        self.__transmissionBatchSize = transmission_batch_size
         self.__pid = 0
         self.__currentID = 0
         self.__transmissions = {}
@@ -21,47 +22,48 @@ class Serializer(object):
         self.__inMemorySerializedData = None
         self.__serializer = serializer
         self.__deserializer = deserializer
-        self.__serializeChecker = serializeChecker
+        self.__serializeChecker = serialize_checker
 
-    def checkSerializing(self):
+    def check_serializing(self):
         if self.__serializeChecker is not None:
             status = self.__serializeChecker()
-            if status in (SERIALIZER_STATE.SUCCESS, SERIALIZER_STATE.FAILED):
+            if status in (SerializerState.SUCCESS, SerializerState.FAILED):
                 self.__pid = 0
             return status, self.__currentID
 
         # In-memory case
         if self.__fileName is None or not self.__useFork:
             if self.__pid in (-1, -2):
-                serializeState = SERIALIZER_STATE.SUCCESS if self.__pid == -1 else SERIALIZER_STATE.FAILED
+                serialize_state = SerializerState.SUCCESS if self.__pid == - \
+                    1 else SerializerState.FAILED
                 self.__pid = 0
                 self.__transmissions = {}
-                return serializeState, self.__currentID
-            return SERIALIZER_STATE.NOT_SERIALIZING, None
+                return serialize_state, self.__currentID
+            return SerializerState.NOT_SERIALIZING, None
 
         # File case
         pid = self.__pid
         if pid == 0:
-            return SERIALIZER_STATE.NOT_SERIALIZING, None
+            return SerializerState.NOT_SERIALIZING, None
         try:
             rpid, status = os.waitpid(pid, os.WNOHANG)
         except OSError:
             self.__pid = 0
-            return SERIALIZER_STATE.FAILED, self.__currentID
+            return SerializerState.FAILED, self.__currentID
         if rpid == pid:
             if status == 0:
                 self.__transmissions = {}
                 self.__pid = 0
-                return SERIALIZER_STATE.SUCCESS, self.__currentID
+                return SerializerState.SUCCESS, self.__currentID
             self.__pid = 0
-            return SERIALIZER_STATE.FAILED, self.__currentID
-        return SERIALIZER_STATE.SERIALIZING, self.__currentID
+            return SerializerState.FAILED, self.__currentID
+        return SerializerState.SERIALIZING, self.__currentID
 
-    def serialize(self, data, id):
+    def serialize(self, data, id_):
         if self.__pid != 0:
             return
 
-        self.__currentID = id
+        self.__currentID = id_
 
         # In-memory case
         if self.__fileName is None:
@@ -80,15 +82,15 @@ class Serializer(object):
                 return
 
         try:
-            tmpFile = self.__fileName + '.tmp'
+            tmp_file = self.__fileName + '.tmp'
             if self.__serializer is not None:
-                self.__serializer(tmpFile, data[1:])
+                self.__serializer(tmp_file, data[1:])
             else:
-                with open(tmpFile, 'wb') as f:
+                with open(tmp_file, 'wb') as f:
                     with gzip.GzipFile(fileobj=f) as g:
                         pickle.dump(data, g)
 
-            atomicReplace(tmpFile, self.__fileName)
+            atomic_replace(tmp_file, self.__fileName)
             if self.__useFork:
                 os._exit(0)
             else:
@@ -112,59 +114,60 @@ class Serializer(object):
                 with gzip.GzipFile(fileobj=f) as g:
                     return pickle.load(g)
 
-    def getTransmissionData(self, transmissionID):
+    def get_transmission_data(self, transmission_id):
         if self.__pid != 0:
             return None
-        transmission = self.__transmissions.get(transmissionID, None)
+        transmission = self.__transmissions.get(transmission_id, None)
         if transmission is None:
             try:
                 if self.__fileName is None:
                     data = self.__inMemorySerializedData
                     assert data is not None
-                    self.__transmissions[transmissionID] = transmission = {
+                    self.__transmissions[transmission_id] = transmission = {
                         'transmitted': 0,
                         'data': data,
                     }
                 else:
-                    self.__transmissions[transmissionID] = transmission = {
+                    self.__transmissions[transmission_id] = transmission = {
                         'file': open(self.__fileName, 'rb'),
                         'transmitted': 0,
                     }
             except:
                 logging.exception('Failed to open file for transmission')
-                self.__transmissions.pop(transmissionID, None)
+                self.__transmissions.pop(transmission_id, None)
                 return None
-        isFirst = transmission['transmitted'] == 0
+        is_first = transmission['transmitted'] == 0
         try:
             if self.__fileName is None:
                 transmitted = transmission['transmitted']
-                data = transmission['data'][transmitted:transmitted + self.__transmissionBatchSize]
+                data = transmission['data'][transmitted:transmitted +
+                                            self.__transmissionBatchSize]
             else:
                 data = transmission['file'].read(self.__transmissionBatchSize)
         except:
             logging.exception('Error reading transmission file')
-            self.__transmissions.pop(transmissionID, None)
+            self.__transmissions.pop(transmission_id, None)
             return False
         size = len(data)
         transmission['transmitted'] += size
         isLast = size == 0
         if isLast:
-            self.__transmissions.pop(transmissionID, None)
-        return data, isFirst, isLast
+            self.__transmissions.pop(transmission_id, None)
+        return data, is_first, isLast
 
-    def setTransmissionData(self, data):
+    def set_transmission_data(self, data):
         if data is None:
             return False
-        data, isFirst, isLast = data
+        data, is_first, is_last = data
 
         # In-memory case
         if self.__fileName is None:
-            if isFirst:
+            if is_first:
                 self.__incomingTransmissionFile = bytes()
             elif self.__incomingTransmissionFile is None:
                 return False
             self.__incomingTransmissionFile += pickle.to_bytes(data)
-            if isLast:
+            if is_last:
                 self.__inMemorySerializedData = self.__incomingTransmissionFile
                 self.__incomingTransmissionFile = None
                 return True
@@ -172,13 +175,14 @@ class Serializer(object):
 
         # File case
         tmpFile = self.__fileName + '.1.tmp'
-        if isFirst:
+        if is_first:
             if self.__incomingTransmissionFile is not None:
                 self.__incomingTransmissionFile.close()
             try:
                 self.__incomingTransmissionFile = open(tmpFile, 'wb')
             except:
-                logging.exception('Failed to open file for incoming transition')
+                logging.exception(
+                    'Failed to open file for incoming transition')
                 self.__incomingTransmissionFile = None
                 return False
         elif self.__incomingTransmissionFile is None:
@@ -189,16 +193,17 @@ class Serializer(object):
             logging.exception('Failed to write incoming transition data')
             self.__incomingTransmissionFile = None
             return False
-        if isLast:
+        if is_last:
             self.__incomingTransmissionFile.close()
             self.__incomingTransmissionFile = None
             try:
-                atomicReplace(tmpFile, self.__fileName)
+                atomic_replace(tmpFile, self.__fileName)
             except:
-                logging.exception('Failed to rename temporary incoming transition file')
+                logging.exception(
+                    'Failed to rename temporary incoming transition file')
                 return False
             return True
         return False
 
-    def cancelTransmisstion(self, id):
-        self.__transmissions.pop(id, None)
+    def cancel_transmisstion(self, id_):
+        self.__transmissions.pop(id_, None)

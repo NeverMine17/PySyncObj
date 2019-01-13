@@ -1,13 +1,14 @@
 #!/usr/bin/env python
+from pysyncobj import SyncObj, SyncObjConf, replicated
 from __future__ import print_function
 
 import sys
+
 try:
     from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 except ImportError:
     from http.server import BaseHTTPRequestHandler, HTTPServer
 sys.path.append("../")
-from pysyncobj import SyncObj, SyncObjConf, replicated
 
 
 class KVStorage(SyncObj):
@@ -28,6 +29,7 @@ class KVStorage(SyncObj):
 
     def get(self, key):
         return self.__data.get(key, None)
+
 
 _g_kvstorage = None
 

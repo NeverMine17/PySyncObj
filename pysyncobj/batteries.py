@@ -18,14 +18,14 @@ class ReplCounter(SyncObjConsumer):
         self.__counter = int()
 
     @replicated
-    def set(self, newValue):
+    def set(self, new_value):
         """
         Set new value to a counter.
 
-        :param newValue: new value
+        :param new_value: new value
         :return: new counter value
         """
-        self.__counter = newValue
+        self.__counter = new_value
         return self.__counter
 
     @replicated
@@ -76,15 +76,15 @@ class ReplList(SyncObjConsumer):
         self.__data = []
 
     @replicated
-    def reset(self, newData):
+    def reset(self, new_data):
         """Replace list with a new one"""
-        assert isinstance(newData, list)
-        self.__data = newData
+        assert isinstance(new_data, list)
+        self.__data = new_data
 
     @replicated
-    def set(self, position, newValue):
+    def set(self, position, new_value):
         """Update value at given position."""
-        self.__data[position] = newValue
+        self.__data[position] = new_value
 
     @replicated
     def append(self, item):
@@ -150,7 +150,7 @@ class ReplList(SyncObjConsumer):
         """Return the number of items of a sequence or collection."""
         return len(self.__data)
 
-    def rawData(self):
+    def raw_data(self):
         """Return internal list - use it carefully"""
         return self.__data
 
@@ -164,10 +164,10 @@ class ReplDict(SyncObjConsumer):
         self.__data = {}
 
     @replicated
-    def reset(self, newData):
+    def reset(self, new_data):
         """Replace dict with a new one"""
-        assert isinstance(newData, dict)
-        self.__data = newData
+        assert isinstance(new_data, dict)
+        self.__data = new_data
 
     @replicated
     def __setitem__(self, key, value):
@@ -227,7 +227,7 @@ class ReplDict(SyncObjConsumer):
         """Return all items"""
         return self.__data.items()
 
-    def rawData(self):
+    def raw_data(self):
         """Return internal dict - use it carefully"""
         return self.__data
 
@@ -241,10 +241,10 @@ class ReplSet(SyncObjConsumer):
         self.__data = set()
 
     @replicated
-    def reset(self, newData):
+    def reset(self, new_data):
         """Replace set with a new one"""
-        assert isinstance(newData, set)
-        self.__data = newData
+        assert isinstance(new_data, set)
+        self.__data = new_data
 
     @replicated
     def add(self, item):
@@ -285,7 +285,7 @@ class ReplSet(SyncObjConsumer):
         """ Update a set with the union of itself and others. """
         self.__data.update(other)
 
-    def rawData(self):
+    def raw_data(self):
         """Return internal dict - use it carefully"""
         return self.__data
 
@@ -303,7 +303,7 @@ class ReplQueue(SyncObjConsumer):
         """
         Replicated FIFO queue. Based on collections.deque.
         Has an interface similar to Queue.
-        
+
         :param maxsize: Max queue size.
         :type maxsize: int
         """
@@ -343,7 +343,7 @@ class ReplQueue(SyncObjConsumer):
         Return default if queue is empty."""
         try:
             return self.__data.popleft()
-        except:
+        except IndexError:
             return default
 
 
@@ -396,73 +396,74 @@ class ReplPriorityQueue(SyncObjConsumer):
 
 
 class _ReplLockManagerImpl(SyncObjConsumer):
-    def __init__(self, autoUnlockTime):
+    def __init__(self, auto_unlock_time):
         super(_ReplLockManagerImpl, self).__init__()
         self.__locks = {}
-        self.__autoUnlockTime = autoUnlockTime
+        self.__autoUnlockTime = auto_unlock_time
 
     @replicated
-    def acquire(self, lockID, clientID, currentTime):
-        existingLock = self.__locks.get(lockID, None)
+    def acquire(self, lock_id, client_id, current_time):
+        existing_lock = self.__locks.get(lock_id, None)
         # Auto-unlock old lock
-        if existingLock is not None:
-            if currentTime - existingLock[1] > self.__autoUnlockTime:
-                existingLock = None
+        if existing_lock is not None:
+            if current_time - existing_lock[1] > self.__autoUnlockTime:
+                existing_lock = None
         # Acquire lock if possible
-        if existingLock is None or existingLock[0] == clientID:
-            self.__locks[lockID] = (clientID, currentTime)
+        if existing_lock is None or existing_lock[0] == client_id:
+            self.__locks[lock_id] = (client_id, current_time)
             return True
         # Lock already acquired by someone else
         return False
 
     @replicated
-    def prolongate(self, clientID, currentTime):
+    def prolongate(self, client_id, current_time):
         for lockID in list(self.__locks):
-            lockClientID, lockTime = self.__locks[lockID]
+            lock_client_id, lock_time = self.__locks[lockID]
 
-            if currentTime - lockTime > self.__autoUnlockTime:
+            if current_time - lock_time > self.__autoUnlockTime:
                 del self.__locks[lockID]
                 continue
 
-            if lockClientID == clientID:
-                self.__locks[lockID] = (clientID, currentTime)
+            if lock_client_id == client_id:
+                self.__locks[lockID] = (client_id, current_time)
 
     @replicated
-    def release(self, lockID, clientID):
-        existingLock = self.__locks.get(lockID, None)
-        if existingLock is not None and existingLock[0] == clientID:
-            del self.__locks[lockID]
+    def release(self, lock_id, client_id):
+        existing_lock = self.__locks.get(lock_id, None)
+        if existing_lock is not None and existing_lock[0] == client_id:
+            del self.__locks[lock_id]
 
-    def isAcquired(self, lockID, clientID, currentTime):
-        existingLock = self.__locks.get(lockID, None)
-        if existingLock is not None:
-            if existingLock[0] == clientID:
-                if currentTime - existingLock[1] < self.__autoUnlockTime:
+    def is_acquired(self, lock_id, client_id, current_time):
+        existing_lock = self.__locks.get(lock_id, None)
+        if existing_lock is not None:
+            if existing_lock[0] == client_id:
+                if current_time - existing_lock[1] < self.__autoUnlockTime:
                     return True
         return False
 
 
 class ReplLockManager(object):
-
-    def __init__(self, autoUnlockTime, selfID = None):
+    def __init__(self, auto_unlock_time, self_id=None):
         """Replicated Lock Manager. Allow to acquire / release distributed locks.
 
-        :param autoUnlockTime: lock will be released automatically
+        :param auto_unlock_time: lock will be released automatically
             if no response from holder for more than autoUnlockTime seconds
-        :type autoUnlockTime: float
-        :param selfID: (optional) - unique id of current lock holder.
-        :type selfID: str
+        :type auto_unlock_time: float
+        :param self_id: (optional) - unique id of current lock holder.
+        :type self_id: str
         """
-        self.__lockImpl = _ReplLockManagerImpl(autoUnlockTime)
-        if selfID is None:
-            selfID = '%s:%d:%d' % (socket.gethostname(), os.getpid(), id(self))
-        self.__selfID = selfID
-        self.__autoUnlockTime = autoUnlockTime
+        self.__lockImpl = _ReplLockManagerImpl(auto_unlock_time)
+        if self_id is None:
+            self_id = '%s:%d:%d' % (
+                socket.gethostname(), os.getpid(), id(self))
+        self.__selfID = self_id
+        self.__autoUnlockTime = auto_unlock_time
         self.__mainThread = threading.current_thread()
         self.__initialised = threading.Event()
         self.__destroying = False
         self.__lastProlongateTime = 0
-        self.__thread = threading.Thread(target=ReplLockManager._autoAcquireThread, args=(weakref.proxy(self),))
+        self.__thread = threading.Thread(
+            target=ReplLockManager._auto_acquire_thread, args=(weakref.proxy(self),))
         self.__thread.start()
         while not self.__initialised.is_set():
             pass
@@ -474,7 +475,7 @@ class ReplLockManager(object):
         """Destroy should be called before destroying ReplLockManager"""
         self.__destroying = True
 
-    def _autoAcquireThread(self):
+    def _auto_acquire_thread(self):
         self.__initialised.set()
         try:
             while True:
@@ -485,20 +486,20 @@ class ReplLockManager(object):
                 time.sleep(0.1)
                 if time.time() - self.__lastProlongateTime < float(self.__autoUnlockTime) / 4.0:
                     continue
-                syncObj = self.__lockImpl._syncObj
-                if syncObj is None:
+                sync_obj = self.__lockImpl._syncObj
+                if sync_obj is None:
                     continue
-                if syncObj._getLeader() is not None:
+                if sync_obj._getLeader() is not None:
                     self.__lastProlongateTime = time.time()
                     self.__lockImpl.prolongate(self.__selfID, time.time())
         except ReferenceError:
             pass
 
-    def tryAcquire(self, lockID, callback=None, sync=False, timeout=None):
+    def try_acquire(self, lock_id, callback=None, sync=False, timeout=None):
         """Attempt to acquire lock.
 
-        :param lockID: unique lock identifier.
-        :type lockID: str
+        :param lock_id: unique lock identifier.
+        :type lock_id: str
         :param sync: True - to wait until lock is acquired or failed to acquire.
         :type sync: bool
         :param callback: if sync is False - callback will be called with operation result.
@@ -507,23 +508,24 @@ class ReplLockManager(object):
         :type timeout: float
         :return True if acquired, False - somebody else already acquired lock
         """
-        return self.__lockImpl.acquire(lockID, self.__selfID, time.time(), callback=callback, sync=sync, timeout=timeout)
+        return self.__lockImpl.acquire(lock_id, self.__selfID, time.time(), callback=callback, sync=sync,
+                                       timeout=timeout)
 
-    def isAcquired(self, lockID):
+    def is_acquired(self, lock_id):
         """Check if lock is acquired by ourselves.
 
-        :param lockID: unique lock identifier.
-        :type lockID: str
+        :param lock_id: unique lock identifier.
+        :type lock_id: str
         :return True if lock is acquired by ourselves.
          """
-        return self.__lockImpl.isAcquired(lockID, self.__selfID, time.time())
+        return self.__lockImpl.is_acquired(lock_id, self.__selfID, time.time())
 
-    def release(self, lockID, callback=None, sync=False, timeout=None):
+    def release(self, lock_id, callback=None, sync=False, timeout=None):
         """
         Release previously-acquired lock.
 
-        :param lockID:  unique lock identifier.
-        :type lockID: str
+        :param lock_id:  unique lock identifier.
+        :type lock_id: str
         :param sync: True - to wait until lock is released or failed to release.
         :type sync: bool
         :param callback: if sync is False - callback will be called with operation result.
@@ -531,4 +533,5 @@ class ReplLockManager(object):
         :param timeout: max operation time (default - unlimited)
         :type timeout: float
         """
-        self.__lockImpl.release(lockID, self.__selfID, callback=callback, sync=sync, timeout=timeout)
+        self.__lockImpl.release(lock_id, self.__selfID,
+                                callback=callback, sync=sync, timeout=timeout)

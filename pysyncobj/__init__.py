@@ -1,3 +1,3 @@
 from .syncobj import SyncObj, SyncObjException, SyncObjConf, replicated, replicated_sync,\
-    FAIL_REASON, _COMMAND_TYPE, createJournal, HAS_CRYPTO, SERIALIZER_STATE, SyncObjConsumer, _RAFT_STATE
+    FailReason, CommandType, createJournal, HAS_CRYPTO, SerializerState, SyncObjConsumer, RaftState
 from .syncobj_admin import Utility

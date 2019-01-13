@@ -9,10 +9,10 @@ from collections import deque
 # According to benchmarks, standard Queue is slow.
 # Using FastQueue improves overall performance by ~15%
 class FastQueue(object):
-    def __init__(self, maxSize):
+    def __init__(self, max_size):
         self.__queue = deque()
         self.__lock = threading.Lock()
-        self.__maxSize = maxSize
+        self.__maxSize = max_size
 
     def put_nowait(self, value):
         with self.__lock:

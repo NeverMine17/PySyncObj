@@ -4,13 +4,14 @@ import time
 import zlib
 
 import pysyncobj.pickle as pickle
-from .poller import POLL_EVENT_TYPE
+from .poller import PollEventType
 
 
 class CONNECTION_STATE:
     DISCONNECTED = 0
     CONNECTING = 1
     CONNECTED = 2
+
 
 def _getAddrType(addr):
     try:
@@ -25,10 +26,11 @@ def _getAddrType(addr):
         pass
     raise Exception('unknown address type')
 
+
 class TCPConnection(object):
 
-    def __init__(self, poller, onMessageReceived = None, onConnected = None, onDisconnected = None,
-                 socket=None, timeout=10.0, sendBufferSize = 2 ** 13, recvBufferSize = 2 ** 13):
+    def __init__(self, poller, onMessageReceived=None, onConnected=None, onDisconnected=None,
+                 socket=None, timeout=10.0, sendBufferSize=2 ** 13, recvBufferSize=2 ** 13):
 
         self.sendRandKey = None
         self.recvRandKey = None
@@ -45,8 +47,8 @@ class TCPConnection(object):
             self.__fileno = socket.fileno()
             self.__state = CONNECTION_STATE.CONNECTED
             self.__poller.subscribe(self.__fileno,
-                                     self.__processConnection,
-                                     POLL_EVENT_TYPE.READ | POLL_EVENT_TYPE.WRITE | POLL_EVENT_TYPE.ERROR)
+                                    self.__processConnection,
+                                    PollEventType.READ | PollEventType.WRITE | PollEventType.ERROR)
         else:
             self.__state = CONNECTION_STATE.DISCONNECTED
             self.__fileno = None
@@ -71,8 +73,10 @@ class TCPConnection(object):
         self.__state = CONNECTION_STATE.DISCONNECTED
         self.__fileno = None
         self.__socket = socket.socket(_getAddrType(host), socket.SOCK_STREAM)
-        self.__socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self.__sendBufferSize)
-        self.__socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.__recvBufferSize)
+        self.__socket.setsockopt(
+            socket.SOL_SOCKET, socket.SO_SNDBUF, self.__sendBufferSize)
+        self.__socket.setsockopt(
+            socket.SOL_SOCKET, socket.SO_RCVBUF, self.__recvBufferSize)
         self.__socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.__socket.setblocking(0)
         self.__readBuffer = bytes()
@@ -87,8 +91,8 @@ class TCPConnection(object):
         self.__fileno = self.__socket.fileno()
         self.__state = CONNECTION_STATE.CONNECTING
         self.__poller.subscribe(self.__fileno,
-                                 self.__processConnection,
-                                 POLL_EVENT_TYPE.READ | POLL_EVENT_TYPE.WRITE | POLL_EVENT_TYPE.ERROR)
+                                self.__processConnection,
+                                PollEventType.READ | PollEventType.WRITE | PollEventType.ERROR)
         return True
 
     def send(self, message):
@@ -129,7 +133,7 @@ class TCPConnection(object):
             poller.unsubscribe(descr)
             return
 
-        if eventType & POLL_EVENT_TYPE.ERROR:
+        if eventType & PollEventType.ERROR:
             self.disconnect()
             return
 
@@ -137,7 +141,7 @@ class TCPConnection(object):
             self.disconnect()
             return
 
-        if eventType & POLL_EVENT_TYPE.READ or eventType & POLL_EVENT_TYPE.WRITE:
+        if eventType & PollEventType.READ or eventType & PollEventType.WRITE:
             if self.__socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR):
                 self.disconnect()
                 return
@@ -149,16 +153,16 @@ class TCPConnection(object):
                 self.__lastReadTime = time.time()
                 return
 
-        if eventType & POLL_EVENT_TYPE.WRITE:
+        if eventType & PollEventType.WRITE:
             self.__trySendBuffer()
             if self.__state == CONNECTION_STATE.DISCONNECTED:
                 return
-            event = POLL_EVENT_TYPE.READ | POLL_EVENT_TYPE.ERROR
+            event = PollEventType.READ | PollEventType.ERROR
             if len(self.__writeBuffer) > 0:
-                event |= POLL_EVENT_TYPE.WRITE
+                event |= PollEventType.WRITE
             poller.subscribe(descr, self.__processConnection, event)
 
-        if eventType & POLL_EVENT_TYPE.READ:
+        if eventType & PollEventType.READ:
             self.__tryReadBuffer()
             if self.__state == CONNECTION_STATE.DISCONNECTED:
                 return

@@ -1,12 +1,12 @@
 import os
 import fcntl
 import socket
-from .poller import POLL_EVENT_TYPE
+from .poller import PollEventType
 
 
 class PipeNotifier(object):
 
-    def __init__(self, poller, callback = None):
+    def __init__(self, poller, callback=None):
         self.__callback = callback
         self.__pipeR, self.__pipeW = os.pipe()
 
@@ -16,7 +16,8 @@ class PipeNotifier(object):
         flag = fcntl.fcntl(self.__pipeW, fcntl.F_GETFD)
         fcntl.fcntl(self.__pipeW, fcntl.F_SETFL, flag | os.O_NONBLOCK)
 
-        poller.subscribe(self.__pipeR, self.__onNewNotification, POLL_EVENT_TYPE.READ)
+        poller.subscribe(
+            self.__pipeR, self.__onNewNotification, PollEventType.READ)
 
     def notify(self):
         os.write(self.__pipeW, b'o')

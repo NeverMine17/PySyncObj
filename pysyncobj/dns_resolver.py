@@ -5,44 +5,44 @@ import logging
 
 
 class DnsCachingResolver(object):
-    def __init__(self, cacheTime, failCacheTime):
+    def __init__(self, cache_time, fail_cache_time):
         self.__cache = {}
-        self.__cacheTime = cacheTime
-        self.__failCacheTime = failCacheTime
+        self.__cacheTime = cache_time
+        self.__failCacheTime = fail_cache_time
         self.__preferredAddrFamily = socket.AF_INET
 
-    def setTimeouts(self, cacheTime, failCacheTime):
-        self.__cacheTime = cacheTime
-        self.__failCacheTime = failCacheTime
+    def set_timeouts(self, cache_time, fail_cache_time):
+        self.__cacheTime = cache_time
+        self.__failCacheTime = fail_cache_time
 
     def resolve(self, hostname):
-        currTime = time.time()
-        cachedTime, ips = self.__cache.get(hostname, (0, []))
-        timePassed = currTime - cachedTime
-        if (timePassed > self.__cacheTime) or (not ips and timePassed > self.__failCacheTime):
-            prevIps = ips
-            ips = self.__doResolve(hostname)
+        curr_time = time.time()
+        cached_time, ips = self.__cache.get(hostname, (0, []))
+        time_passed = curr_time - cached_time
+        if (time_passed > self.__cacheTime) or (not ips and time_passed > self.__failCacheTime):
+            prev_ips = ips
+            ips = self.__do_resolve(hostname)
             if not ips:
-                ips = prevIps
-            self.__cache[hostname] = (currTime, ips)
+                ips = prev_ips
+            self.__cache[hostname] = (curr_time, ips)
         return None if not ips else random.choice(ips)
 
-    def setPreferredAddrFamily(self, preferredAddrFamily):
-        if preferredAddrFamily is None:
+    def set_preferred_addr_family(self, preferred_addr_family):
+        if preferred_addr_family is None:
             self.__preferredAddrFamily = None
-        elif preferredAddrFamily == 'ipv4':
+        elif preferred_addr_family == 'ipv4':
             self.__preferredAddrFamily = socket.AF_INET
-        elif preferredAddrFamily == 'ipv6':
+        elif preferred_addr_family == 'ipv6':
             self.__preferredAddrFamily = socket.AF_INET
         else:
-            self.__preferredAddrFamily = preferredAddrFamily
+            self.__preferredAddrFamily = preferred_addr_family
 
-    def __doResolve(self, hostname):
+    def __do_resolve(self, hostname):
         try:
             addrs = socket.getaddrinfo(hostname, None)
             ips = []
             if self.__preferredAddrFamily is not None:
-                ips = list(set([addr[4][0] for addr in addrs\
+                ips = list(set([addr[4][0] for addr in addrs
                                 if addr[0] == self.__preferredAddrFamily]))
             if not ips:
                 ips = list(set([addr[4][0] for addr in addrs]))
@@ -51,9 +51,13 @@ class DnsCachingResolver(object):
             ips = []
         return ips
 
+
 _g_resolver = None
-def globalDnsResolver():
+
+
+def global_dns_resolver():
     global _g_resolver
     if _g_resolver is None:
-        _g_resolver = DnsCachingResolver(cacheTime=600.0, failCacheTime=30.0)
+        _g_resolver = DnsCachingResolver(
+            cache_time=600.0, fail_cache_time=30.0)
     return _g_resolver

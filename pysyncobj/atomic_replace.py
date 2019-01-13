@@ -14,15 +14,16 @@ if hasattr(ctypes, 'windll'):     # pragma: no cover
     if sys.version_info >= (3, 0):
         unicode = str
 
-    def atomicReplace(oldPath, newPath):
-        if not isinstance(oldPath, unicode):
-            oldPath = unicode(oldPath, sys.getfilesystemencoding())
-        if not isinstance(newPath, unicode):
-            newPath = unicode(newPath, sys.getfilesystemencoding())
+    def atomic_replace(old_path, new_path):
+        if not isinstance(old_path, unicode):
+            old_path = unicode(old_path, sys.getfilesystemencoding())
+        if not isinstance(new_path, unicode):
+            new_path = unicode(new_path, sys.getfilesystemencoding())
         ta = CreateTransaction(None, 0, 0, 0, 0, 1000, 'atomic_replace')
         if ta == -1:
             return False
-        res = MoveFileTransacted(oldPath, newPath, None, None, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH, ta)
+        res = MoveFileTransacted(old_path, new_path, None, None,
+                                 MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH, ta)
         if not res:
             CloseHandle(ta)
             return False

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+from pysyncobj import SyncObj, replicated
 from __future__ import print_function
 
 import sys
 import time
 from functools import partial
+
 sys.path.append("../")
-from pysyncobj import SyncObj, replicated
 
 
 class TestObj(SyncObj):
@@ -15,21 +16,22 @@ class TestObj(SyncObj):
         self.__counter = 0
 
     @replicated
-    def incCounter(self):
+    def inc_counter(self):
         self.__counter += 1
         return self.__counter
 
     @replicated
-    def addValue(self, value, cn):
+    def add_value(self, value, cn):
         self.__counter += value
         return self.__counter, cn
 
-    def getCounter(self):
+    def get_counter(self):
         return self.__counter
 
 
-def onAdd(res, err, cnt):
-    print('onAdd %d:' % cnt, res, err)
+def on_add(res, err, cnt):
+    print('on_add %d:' % cnt, res, err)
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -44,15 +46,15 @@ if __name__ == '__main__':
     while True:
         # time.sleep(0.005)
         time.sleep(0.5)
-        if o.getCounter() != old_value:
-            old_value = o.getCounter()
+        if o.get_counter() != old_value:
+            old_value = o.get_counter()
             print(old_value)
         if o._getLeader() is None:
             continue
         # if n < 2000:
         if n < 20:
-            o.addValue(10, n, callback=partial(onAdd, cnt=n))
+            o.add_value(10, n, callback=partial(on_add, cnt=n))
         n += 1
         # if n % 200 == 0:
         # if True:
-        #    print('Counter value:', o.getCounter(), o._getLeader(), o._getRaftLogSize(), o._getLastCommitIndex())
+        #    print('Counter value:', o.get_counter(), o._getLeader(), o._getRaftLogSize(), o._getLastCommitIndex())

@@ -14,6 +14,7 @@ if is_py3:
     # The main idea is - treat object as binary if the decoding has failed.
     # Such approach will not affect performance when we run all nodes with
     # the same python version, beacuse it will never retry.
+
     def _load_short_binstring(self):
         len = ord(self.read(1))
         data = self.read(len)
@@ -26,7 +27,8 @@ if is_py3:
     def _load_binstring(self):
         len, = unpack('<i', self.read(4))
         if len < 0:
-            raise pickle.UnpicklingError("BINSTRING pickle has negative byte count")
+            raise pickle.UnpicklingError(
+                "BINSTRING pickle has negative byte count")
         data = self.read(len)
         try:
             data = str(data, self.encoding, self.errors)
@@ -34,7 +36,8 @@ if is_py3:
             pass
         self.append(data)
 
-    pickle._Unpickler.dispatch[pickle.SHORT_BINSTRING[0]] = _load_short_binstring
+    pickle._Unpickler.dispatch[pickle.SHORT_BINSTRING[0]
+                               ] = _load_short_binstring
     pickle._Unpickler.dispatch[pickle.BINSTRING[0]] = _load_binstring
 else:
     try:

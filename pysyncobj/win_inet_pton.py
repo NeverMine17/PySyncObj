@@ -15,6 +15,7 @@ class sockaddr(ctypes.Structure):
                 ("ipv6_addr", ctypes.c_byte * 16),
                 ("__pad2", ctypes.c_ulong)]
 
+
 if hasattr(ctypes, 'windll'):
     WSAStringToAddressA = ctypes.windll.ws2_32.WSAStringToAddressA
     WSAAddressToStringA = ctypes.windll.ws2_32.WSAAddressToStringA
@@ -23,6 +24,7 @@ else:
         raise SystemError(
             "Invalid platform. ctypes.windll must be available."
         )
+
     WSAStringToAddressA = not_windows
     WSAAddressToStringA = not_windows
 
@@ -77,6 +79,7 @@ def inet_ntop(address_family, packed_ip):
         raise socket.error(ctypes.FormatError())
 
     return ip_string[:ip_string_size.value - 1]
+
 
 # Adding our two functions to the socket library
 if os.name == 'nt':

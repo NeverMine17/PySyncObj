@@ -1,12 +1,13 @@
 #!/usr/bin/env python
+from pysyncobj import SyncObj, replicated
 from __future__ import print_function
 
 import sys
 import threading
 import weakref
 import time
+
 sys.path.append("../")
-from pysyncobj import SyncObj, replicated
 
 
 class LockImpl(SyncObj):

@@ -1,9 +1,10 @@
 from setuptools import setup
 from pysyncobj.version import VERSION
 
-description='A library for replicating your python class between multiple servers, based on raft protocol'
+description = 'A library for replicating your python class between multiple servers, based on raft protocol'
 try:
     import pypandoc
+
     long_description = pypandoc.convert('README.md', 'rst')
 except(IOError, ImportError, RuntimeError):
     long_description = description

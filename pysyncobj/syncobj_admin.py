@@ -5,7 +5,7 @@ import sys
 from argparse import ArgumentParser
 
 from .encryptor import getEncryptor
-from .poller import createPoller
+from .poller import create_poller
 from .tcp_connection import TCPConnection
 
 
@@ -16,7 +16,7 @@ class Utility(object):
         self.__result = None
 
         if self.__getData(args):
-            self.__poller = createPoller('auto')
+            self.__poller = create_poller('auto')
             self.__connection = TCPConnection(self.__poller,
                                               onDisconnected=self.__onDisconnected,
                                               onMessageReceived=self.__onMessageReceived,
@@ -24,12 +24,12 @@ class Utility(object):
                                               timeout=900.0)
             if self.__password is not None:
                 self.__connection.encryptor = getEncryptor(self.__password)
-            self.__isConnected = self.__connection.connect(self.__host, self.__port)
+            self.__isConnected = self.__connection.connect(
+                self.__host, self.__port)
             if not self.__isConnected:
                 self.__result = 'can\'t connected'
             while self.__isConnected:
                 self.__poller.poll(0.5)
-
 
     def __onMessageReceived(self, message):
 
@@ -40,7 +40,8 @@ class Utility(object):
         if isinstance(message, str):
             self.__result = message
         elif isinstance(message, dict):
-            self.__result = '\n'.join('%s: %s' % (k, v) for k, v in sorted(message.items()))
+            self.__result = '\n'.join('%s: %s' % (k, v)
+                                      for k, v in sorted(message.items()))
         else:
             self.__result = str(message)
         self.__connection.disconnect()
@@ -98,13 +99,13 @@ class Utility(object):
             self.__result = 'invalid command'
             return False
 
-
-    def __checkCorrectAdress(self, adress):
+    @staticmethod
+    def __checkCorrectAdress(adress):
 
         try:
             host, port = adress.rsplit(':', 1)
             port = int(port)
-            assert (port > 0 and port < 65536)
+            assert (0 < port < 65536)
             return True
         except:
             return False
@@ -113,12 +114,18 @@ class Utility(object):
 class Parser(object):
     def __init__(self):
         self.__parser = ArgumentParser()
-        self.__parser.add_argument('-conn', action='store', dest='connection', help='adress to connect')
-        self.__parser.add_argument('-pass', action='store', dest='password', help='cluster\'s password')
-        self.__parser.add_argument('-status', action='store_true', help='send command \'status\'')
-        self.__parser.add_argument('-add', action='store', dest='add', help='send command \'add\'')
-        self.__parser.add_argument('-remove', action='store', dest='remove', help='send command \'remove\'')
-        self.__parser.add_argument('-set_version', action='store', dest='version', help='set cluster code version')
+        self.__parser.add_argument(
+            '-conn', action='store', dest='connection', help='adress to connect')
+        self.__parser.add_argument(
+            '-pass', action='store', dest='password', help='cluster\'s password')
+        self.__parser.add_argument(
+            '-status', action='store_true', help='send command \'status\'')
+        self.__parser.add_argument(
+            '-add', action='store', dest='add', help='send command \'add\'')
+        self.__parser.add_argument(
+            '-remove', action='store', dest='remove', help='send command \'remove\'')
+        self.__parser.add_argument(
+            '-set_version', action='store', dest='version', help='set cluster code version')
 
     def parse(self, args):
         return self.__parser.parse_args(args)

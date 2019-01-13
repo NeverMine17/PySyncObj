@@ -26,7 +26,7 @@ class Transport(object):
         self._onReadonlyNodeConnectedCallback = None
         self._onReadonlyNodeDisconnectedCallback = None
 
-    def setOnMessageReceivedCallback(self, callback):
+    def set_on_message_received_callback(self, callback):
         """
         Set the callback for when a message is received, or disable callback by passing None
 
@@ -36,7 +36,7 @@ class Transport(object):
 
         self._onMessageReceivedCallback = callback
 
-    def setOnNodeConnectedCallback(self, callback):
+    def set_on_node_connected_callback(self, callback):
         """
         Set the callback for when the connection to a (non-read-only) node is established, or disable callback by passing None
 
@@ -46,7 +46,7 @@ class Transport(object):
 
         self._onNodeConnectedCallback = callback
 
-    def setOnNodeDisconnectedCallback(self, callback):
+    def set_on_node_disconnected_callback(self, callback):
         """
         Set the callback for when the connection to a (non-read-only) node is terminated or is considered dead, or disable callback by passing None
 
@@ -56,7 +56,7 @@ class Transport(object):
 
         self._onNodeDisconnectedCallback = callback
 
-    def setOnReadonlyNodeConnectedCallback(self, callback):
+    def set_on_readonly_node_connected_callback(self, callback):
         """
         Set the callback for when a read-only node connects, or disable callback by passing None
 
@@ -66,7 +66,7 @@ class Transport(object):
 
         self._onReadonlyNodeConnectedCallback = callback
 
-    def setOnReadonlyNodeDisconnectedCallback(self, callback):
+    def set_on_readonly_node_disconnected_callback(self, callback):
         """
         Set the callback for when a read-only node disconnects (or the connection is lost), or disable callback by passing None
 
@@ -77,27 +77,27 @@ class Transport(object):
         self._onReadonlyNodeDisconnectedCallback = callback
 
     # Helper functions so you don't need to check for the callbacks manually in subclasses
-    def _onMessageReceived(self, node, message):
+    def _on_message_received(self, node, message):
         if self._onMessageReceivedCallback is not None:
             self._onMessageReceivedCallback(node, message)
 
-    def _onNodeConnected(self, node):
+    def _on_node_connected(self, node):
         if self._onNodeConnectedCallback is not None:
             self._onNodeConnectedCallback(node)
 
-    def _onNodeDisconnected(self, node):
+    def _on_node_disconnected(self, node):
         if self._onNodeDisconnectedCallback is not None:
             self._onNodeDisconnectedCallback(node)
 
-    def _onReadonlyNodeConnected(self, node):
+    def _on_readonly_node_connected(self, node):
         if self._onReadonlyNodeConnectedCallback is not None:
             self._onReadonlyNodeConnectedCallback(node)
 
-    def _onReadonlyNodeDisconnected(self, node):
+    def _on_readonly_node_disconnected(self, node):
         if self._onReadonlyNodeDisconnectedCallback is not None:
             self._onReadonlyNodeDisconnectedCallback(node)
 
-    def tryGetReady(self):
+    def try_get_ready(self):
         """
         Try to get the transport ready for operation. This may for example mean binding a server to a port.
 
@@ -114,14 +114,14 @@ class Transport(object):
 
         return True
 
-    def waitReady(self):
+    def wait_ready(self):
         """
         Wait for the transport to be ready.
 
         :raises TransportNotReadyError: if the transport fails to get ready for operation
         """
 
-    def addNode(self, node):
+    def add_node(self, node):
         """
         Add a node to the network
 
@@ -129,7 +129,7 @@ class Transport(object):
         :type node Node
         """
 
-    def dropNode(self, node):
+    def drop_node(self, node):
         """
         Remove a node from the network (meaning connections, buffers, etc. related to this node can be dropped)
 
@@ -157,5 +157,3 @@ class Transport(object):
         """
         Destroy the transport
         """
-
-

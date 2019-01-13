@@ -3,8 +3,8 @@ import os
 import threading
 import time
 
-from pysyncobj import FAIL_REASON
-from pysyncobj.dns_resolver import globalDnsResolver
+from pysyncobj import FailReason
+from pysyncobj.dns_resolver import global_dns_resolver
 from pysyncobj.node import Node
 from pysyncobj.tcp_connection import CONNECTION_STATE, TCPConnection
 from pysyncobj.tcp_node import TCPNode
@@ -28,32 +28,37 @@ class TCPTransport(Transport):
         super(TCPTransport, self).__init__(syncObj, selfNode, otherNodes)
         self._syncObj = syncObj
         self._server = None
-        self._connections = {} # Node object -> TcpConnection object
-        self._unknownConnections = set() # set of TcpConnection objects
+        self._connections = {}  # Node object -> TcpConnection object
+        self._unknownConnections = set()  # set of TcpConnection objects
         self._selfNode = selfNode
         self._selfIsReadonlyNode = selfNode is None
-        self._nodes = set() # set of TCPNode
-        self._readonlyNodes = set() # set of Node
-        self._nodeAddrToNode = {} # node ID/address -> TCPNode (does not include read-only nodes)
-        self._lastConnectAttempt = {} # TPCNode -> float (seconds since epoch)
-        self._preventConnectNodes = set() # set of TCPNode to which no (re)connection should be triggered on _connectIfNecessary; used via dropNode and destroy to cleanly remove a node
+        self._nodes = set()  # set of TCPNode
+        self._readonlyNodes = set()  # set of Node
+        # node ID/address -> TCPNode (does not include read-only nodes)
+        self._nodeAddrToNode = {}
+        self._lastConnectAttempt = {}  # TPCNode -> float (seconds since epoch)
+        # set of TCPNode to which no (re)connection should be triggered on
+        self._preventConnectNodes = set()
+        # _connectIfNecessary; used via drop_node and destroy to cleanly remove a node
         self._readonlyNodesCounter = 0
         self._lastBindAttemptTime = 0
         self._bindAttempts = 0
-        self._bindOverEvent = threading.Event() # gets triggered either when the server has either been bound correctly or when the number of bind attempts exceeds the config value maxBindRetries
+        # gets triggered either when the server has either been bound
+        self._bindOverEvent = threading.Event()
+        # correctly or when the number of bind attempts exceeds the config value maxBindRetries
         self._ready = False
 
-        self._syncObj.addOnTickCallback(self._onTick)
+        self._syncObj.addOnTickCallback(self._on_tick)
 
         for node in otherNodes:
-            self.addNode(node)
+            self.add_node(node)
 
         if not self._selfIsReadonlyNode:
-            self._createServer()
+            self._create_server()
         else:
             self._ready = True
 
-    def _connToNode(self, conn):
+    def _conn_to_node(self, conn):
         """
         Find the node to which a connection belongs.
 
@@ -68,36 +73,36 @@ class TCPTransport(Transport):
                 return node
         return None
 
-    def tryGetReady(self):
+    def try_get_ready(self):
         """
         Try to bind the server if necessary.
 
         :raises TransportNotReadyError if the server could not be bound
         """
 
-        self._maybeBind()
+        self._maybe_bind()
 
     @property
     def ready(self):
         return self._ready
 
-    def _createServer(self):
+    def _create_server(self):
         """
         Create the TCP server (but don't bind yet)
         """
 
         conf = self._syncObj.conf
-        bindAddr = conf.bindAddress or getattr(self._selfNode, 'address')
-        if not bindAddr:
+        bind_addr = conf.bindAddress or getattr(self._selfNode, 'address')
+        if not bind_addr:
             raise RuntimeError('Unable to determine bind address')
-        host, port = bindAddr.rsplit(':', 1)
-        host = globalDnsResolver().resolve(host)
-        self._server = TCPServer(self._syncObj._poller, host, port, onNewConnection = self._onNewIncomingConnection,
-                                 sendBufferSize = conf.sendBufferSize,
-                                 recvBufferSize = conf.recvBufferSize,
-                                 connectionTimeout = conf.connectionTimeout)
+        host, port = bind_addr.rsplit(':', 1)
+        host = global_dns_resolver().resolve(host)
+        self._server = TCPServer(self._syncObj._poller, host, port, on_new_connection=self._on_new_incoming_connection,
+                                 send_buffer_size=conf.sendBufferSize,
+                                 recv_buffer_size=conf.recvBufferSize,
+                                 connection_timeout=conf.connectionTimeout)
 
-    def _maybeBind(self):
+    def _maybe_bind(self):
         """
         Bind the server unless it is already bound, this is a read-only node, or the last attempt was too recently.
 
@@ -118,18 +123,18 @@ class TCPTransport(Transport):
             self._ready = True
             self._bindOverEvent.set()
 
-    def _onTick(self):
+    def _on_tick(self):
         """
         Tick callback. Binds the server and connects to other nodes as necessary.
         """
 
         try:
-            self._maybeBind()
+            self._maybe_bind()
         except TransportNotReadyError:
             pass
-        self._connectIfNecessary()
+        self._connect_if_necessary()
 
-    def _onNewIncomingConnection(self, conn):
+    def _on_new_incoming_connection(self, conn):
         """
         Callback for connections initiated by the other side
 
@@ -141,10 +146,12 @@ class TCPTransport(Transport):
         encryptor = self._syncObj.encryptor
         if encryptor:
             conn.encryptor = encryptor
-        conn.setOnMessageReceivedCallback(functools.partial(self._onIncomingMessageReceived, conn))
-        conn.setOnDisconnectedCallback(functools.partial(self._onDisconnected, conn))
+        conn.setOnMessageReceivedCallback(functools.partial(
+            self._on_incoming_message_received, conn))
+        conn.setOnDisconnectedCallback(
+            functools.partial(self._onDisconnected, conn))
 
-    def _onIncomingMessageReceived(self, conn, message):
+    def _on_incoming_message_received(self, conn, message):
         """
         Callback for initial messages on incoming connections. Handles encryption, utility messages, and association of the connection with a Node.
         Once this initial setup is done, the relevant connected callback is executed, and further messages are deferred to the onMessageReceived callback.
@@ -169,16 +176,23 @@ class TCPTransport(Transport):
                     conn.send(self._syncObj.getStatus())
                     done = True
                 elif message[0] == 'add':
-                    self._syncObj.addNodeToCluster(message[1], callback = functools.partial(self._utilityCallback, conn = conn, cmd = 'ADD', arg = message[1]))
+                    self._syncObj.add_node_to_cluster(message[1],
+                                                      callback=functools.partial(self._utility_callback, conn=conn,
+                                                                                 cmd='ADD', arg=message[1]))
                     done = True
                 elif message[0] == 'remove':
                     if message[1] == self._selfNode.address:
                         conn.send('FAIL REMOVE ' + message[1])
                     else:
-                        self._syncObj.removeNodeFromCluster(message[1], callback = functools.partial(self._utilityCallback, conn = conn, cmd = 'REMOVE', arg = message[1]))
+                        self._syncObj.remove_node_from_cluster(message[1],
+                                                               callback=functools.partial(self._utility_callback,
+                                                                                          conn=conn,
+                                                                                          cmd='REMOVE', arg=message[1]))
                     done = True
                 elif message[0] == 'set_version':
-                    self._syncObj.setCodeVersion(message[1], callback = functools.partial(self._utilityCallback, conn = conn, cmd = 'SET_VERSION', arg = str(message[1])))
+                    self._syncObj.set_code_version(message[1],
+                                                   callback=functools.partial(self._utility_callback, conn=conn,
+                                                                              cmd='SET_VERSION', arg=str(message[1])))
                     done = True
             except Exception as e:
                 conn.send(str(e))
@@ -203,13 +217,15 @@ class TCPTransport(Transport):
 
         self._unknownConnections.discard(conn)
         self._connections[node] = conn
-        conn.setOnMessageReceivedCallback(functools.partial(self._onMessageReceived, node))
+        conn.setOnMessageReceivedCallback(
+            functools.partial(self._on_message_received, node))
         if not readonly:
-            self._onNodeConnected(node)
+            self._on_node_connected(node)
         else:
-            self._onReadonlyNodeConnected(node)
+            self._on_readonly_node_connected(node)
 
-    def _utilityCallback(self, res, err, conn, cmd, arg):
+    @staticmethod
+    def _utility_callback(res, err, conn, cmd, arg):
         """
         Callback for the utility messages
 
@@ -221,11 +237,11 @@ class TCPTransport(Transport):
         """
 
         cmdResult = 'FAIL'
-        if err == FAIL_REASON.SUCCESS:
+        if err == FailReason.SUCCESS:
             cmdResult = 'SUCCESS'
         conn.send(cmdResult + ' ' + cmd + ' ' + arg)
 
-    def _shouldConnect(self, node):
+    def _should_connect(self, node):
         """
         Check whether this node should initiate a connection to another node
 
@@ -233,9 +249,10 @@ class TCPTransport(Transport):
         :type node: Node
         """
 
-        return isinstance(node, TCPNode) and node not in self._preventConnectNodes and (self._selfIsReadonlyNode or self._selfNode.address > node.address)
+        return isinstance(node, TCPNode) and node not in self._preventConnectNodes and (
+            self._selfIsReadonlyNode or self._selfNode.address > node.address)
 
-    def _connectIfNecessarySingle(self, node):
+    def _connect_if_necessary_single(self, node):
         """
         Connect to a node if necessary.
 
@@ -245,45 +262,49 @@ class TCPTransport(Transport):
 
         if node in self._connections and self._connections[node].state != CONNECTION_STATE.DISCONNECTED:
             return True
-        if not self._shouldConnect(node):
+        if not self._should_connect(node):
             return False
-        assert node in self._connections # Since we "should connect" to this node, there should always be a connection object already in place.
-        if node in self._lastConnectAttempt and time.time() - self._lastConnectAttempt[node] < self._syncObj.conf.connectionRetryTime:
+        # Since we "should connect" to this node, there should always be a connection
+        assert node in self._connections
+        # object already in place.
+        if node in self._lastConnectAttempt and time.time() - self._lastConnectAttempt[
+                node] < self._syncObj.conf.connectionRetryTime:
             return False
         self._lastConnectAttempt[node] = time.time()
         return self._connections[node].connect(node.ip, node.port)
 
-    def _connectIfNecessary(self):
+    def _connect_if_necessary(self):
         """
         Connect to all nodes as necessary.
         """
 
         for node in self._nodes:
-            self._connectIfNecessarySingle(node)
+            self._connect_if_necessary_single(node)
 
-    def _onOutgoingConnected(self, conn):
+    def _on_outgoing_connected(self, conn):
         """
         Callback for when a new connection from this to another node is established. Handles encryption and informs the other node which node this is.
         If encryption is disabled, this triggers the onNodeConnected callback and messages are deferred to the onMessageReceived callback.
-        If encryption is enabled, the first message is handled by _onOutgoingMessageReceived.
+        If encryption is enabled, the first message is handled by _on_outgoing_message_received.
 
         :param conn: connection object
         :type conn: TCPConnection
         """
 
         if self._syncObj.encryptor:
-            conn.setOnMessageReceivedCallback(functools.partial(self._onOutgoingMessageReceived, conn)) # So we can process the sendRandKey
+            conn.setOnMessageReceivedCallback(
+                functools.partial(self._on_outgoing_message_received, conn))  # So we can process the sendRandKey
             conn.recvRandKey = os.urandom(32)
             conn.send(conn.recvRandKey)
         else:
-            # The onMessageReceived callback is configured in addNode already.
+            # The onMessageReceived callback is configured in add_node already.
             if not self._selfIsReadonlyNode:
                 conn.send(self._selfNode.address)
             else:
                 conn.send('readonly')
-            self._onNodeConnected(self._connToNode(conn))
+            self._on_node_connected(self._conn_to_node(conn))
 
-    def _onOutgoingMessageReceived(self, conn, message):
+    def _on_outgoing_message_received(self, conn, message):
         """
         Callback for receiving a message on a new outgoing connection. Used only if encryption is enabled to exchange the random keys.
         Once the key exchange is done, this triggers the onNodeConnected callback, and further messages are deferred to the onMessageReceived callback.
@@ -298,9 +319,10 @@ class TCPTransport(Transport):
             conn.sendRandKey = message
             conn.send(self._selfNode.address)
 
-        node = self._connToNode(conn)
-        conn.setOnMessageReceivedCallback(functools.partial(self._onMessageReceived, node))
-        self._onNodeConnected(node)
+        node = self._conn_to_node(conn)
+        conn.setOnMessageReceivedCallback(
+            functools.partial(self._on_message_received, node))
+        self._on_node_connected(node)
 
     def _onDisconnected(self, conn):
         """
@@ -311,16 +333,16 @@ class TCPTransport(Transport):
         """
 
         self._unknownConnections.discard(conn)
-        node = self._connToNode(conn)
+        node = self._conn_to_node(conn)
         if node is not None:
             if node in self._nodes:
-                self._onNodeDisconnected(node)
-                self._connectIfNecessarySingle(node)
+                self._on_node_disconnected(node)
+                self._connect_if_necessary_single(node)
             else:
                 self._readonlyNodes.discard(node)
-                self._onReadonlyNodeDisconnected(node)
+                self._on_readonly_node_disconnected(node)
 
-    def waitReady(self):
+    def wait_ready(self):
         """
         Wait for the TCP transport to become ready for operation, i.e. the server to be bound.
         This method should be called from a different thread than used for the SyncObj ticks.
@@ -332,7 +354,7 @@ class TCPTransport(Transport):
         if not self._ready:
             raise TransportNotReadyError
 
-    def addNode(self, node):
+    def add_node(self, node):
         """
         Add a node to the network
 
@@ -342,18 +364,21 @@ class TCPTransport(Transport):
 
         self._nodes.add(node)
         self._nodeAddrToNode[node.address] = node
-        if self._shouldConnect(node):
-            conn = TCPConnection(poller = self._syncObj._poller,
-                                 timeout = self._syncObj.conf.connectionTimeout,
-                                 sendBufferSize = self._syncObj.conf.sendBufferSize,
-                                 recvBufferSize = self._syncObj.conf.recvBufferSize)
+        if self._should_connect(node):
+            conn = TCPConnection(poller=self._syncObj._poller,
+                                 timeout=self._syncObj.conf.connectionTimeout,
+                                 sendBufferSize=self._syncObj.conf.sendBufferSize,
+                                 recvBufferSize=self._syncObj.conf.recvBufferSize)
             conn.encryptor = self._syncObj.encryptor
-            conn.setOnConnectedCallback(functools.partial(self._onOutgoingConnected, conn))
-            conn.setOnMessageReceivedCallback(functools.partial(self._onMessageReceived, node))
-            conn.setOnDisconnectedCallback(functools.partial(self._onDisconnected, conn))
+            conn.setOnConnectedCallback(functools.partial(
+                self._on_outgoing_connected, conn))
+            conn.setOnMessageReceivedCallback(
+                functools.partial(self._on_message_received, node))
+            conn.setOnDisconnectedCallback(
+                functools.partial(self._onDisconnected, conn))
             self._connections[node] = conn
 
-    def dropNode(self, node):
+    def drop_node(self, node):
         """
         Drop a node from the network
 
@@ -363,7 +388,8 @@ class TCPTransport(Transport):
 
         conn = self._connections.pop(node, None)
         if conn is not None:
-            # Calling conn.disconnect() immediately triggers the onDisconnected callback if the connection isn't already disconnected, so this is necessary to prevent the automatic reconnect.
+            # Calling conn.disconnect() immediately triggers the on_disconnected callback if the connection
+            # isn't already disconnected, so this is necessary to prevent the automatic reconnect.
             self._preventConnectNodes.add(node)
             conn.disconnect()
             self._preventConnectNodes.remove(node)
@@ -398,13 +424,13 @@ class TCPTransport(Transport):
         Destroy this transport
         """
 
-        self.setOnMessageReceivedCallback(None)
-        self.setOnNodeConnectedCallback(None)
-        self.setOnNodeDisconnectedCallback(None)
-        self.setOnReadonlyNodeConnectedCallback(None)
-        self.setOnReadonlyNodeDisconnectedCallback(None)
+        self.set_on_message_received_callback(None)
+        self.set_on_node_connected_callback(None)
+        self.set_on_node_disconnected_callback(None)
+        self.set_on_readonly_node_connected_callback(None)
+        self.set_on_readonly_node_disconnected_callback(None)
         for node in self._nodes | self._readonlyNodes:
-            self.dropNode(node)
+            self.drop_node(node)
         if self._server is not None:
             self._server.unbind()
         for conn in self._unknownConnections:
