@@ -1,4 +1,6 @@
-# PySyncObj
+# PySyncObj3
+
+Just experementing with some stuff.
 
 [![Build Status][travis-image]][travis] [![Windows Build Status][appveyor-image]][appveyor] [![Coverage Status][coverage-image]][coverage] [![Release][release-image]][releases] [![License][license-image]][license] [![gitter][gitter-image]][gitter] [![docs][docs-image]][docs]
 
